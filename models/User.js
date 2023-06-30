@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
+const bcrypt = require("bcrypt");
 
 const User = sequelize.define("User", {
   id: {
@@ -7,6 +8,10 @@ const User = sequelize.define("User", {
     allowNull: true,
     autoIncrement: true,
     primaryKey: true,
+  },
+  photo: {
+    type: DataTypes.BLOB,
+    allowNull: true,
   },
   name: {
     type: DataTypes.STRING,
@@ -44,5 +49,11 @@ const User = sequelize.define("User", {
     allowNull: true,
   },
 });
+
+// Método para comparar senhas
+User.prototype.comparePassword = async function (password) {
+  return bcrypt.compare(password, this.password);
+};
+
 
 module.exports = User;

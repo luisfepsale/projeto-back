@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+const bcrypt = require('bcrypt');
+const moment = require("moment");
 
 // Rota para listar todos os usuários
 router.get("/", async (req, res) => {
@@ -13,11 +15,21 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Rota para criar um novo usuário
+
+// create
 router.post("/create", async (req, res) => {
-  const { name, email, phone, dateOfBirth, cpf, password } = req.body;
+  const { name, email, phone, dateOfBirth, cpf, password, photo, confirmPassword } = req.body;
+
+  const formattedDateOfBirth = moment(dateOfBirth, "DD/MM/YYYY").format("YYYY-MM-DD");
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "A senha e a confirmação de senha não coincidem" });
+  }
+
   try {
-    const user = await User.create({ name, email, phone, dateOfBirth, cpf, password });
+    const hashedPassword = await bcrypt.hash(password, 10); // Criptografa a senha com um salt de 10 rounds
+
+    const user = await User.create({ name, email, phone, dateOfBirth: formattedDateOfBirth, cpf, password: hashedPassword, photo });
     res.status(201).json(user);
   } catch (error) {
     console.error(error);
@@ -25,33 +37,29 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// Rota para obter um usuário específico
-router.get("/edit/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    const user = await User.findByPk(id);
-    if (user) {
-      res.json(user);
-    } else {
-      res.status(404).json({ message: "Usuário não encontrado" });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Erro ao obter o usuário" });
-  }
-});
 
 // Rota para atualizar um usuário
 router.put("/update/:id", async (req, res) => {
   const { id } = req.params;
-  const { name, email } = req.body;
+  const { name, email, phone, dateOfBirth, cpf, password, photo, newPassword } = req.body;
   try {
     const user = await User.findByPk(id);
     if (user) {
+      // Verificar se a senha atual está correta
+      const isPasswordCorrect = await user.comparePassword(password);
+      if (!isPasswordCorrect) {
+        return res.status(401).json({ message: "Senha atual incorreta" });
+      }
+      
       user.name = name;
       user.email = email;
+      user.phone = phone;
+      user.dateOfBirth = dateOfBirth;
+      user.cpf = cpf;
+      user.password = await bcrypt.hash(newPassword, 10); // Atualizar para a nova senha
+      user.photo = photo;
       await user.save();
-      res.json(user);
+      res.status(201).json(user);
     } else {
       res.status(404).json({ message: "Usuário não encontrado" });
     }

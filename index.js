@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const userRoutes = require("./controllers/UserController");
+const loginRoute = require('./routes/auth'); // 
 const database = require("./config/database");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -8,7 +9,7 @@ const cors = require("cors");
 app.use(cors());
 app.use(
     cors({
-      origin: "http://192.168.0.236:3000", // Defina a origem permitida (seu front-end)
+      origin: "http://localhost:3001", // Defina a origem permitida (seu front-end)
       optionsSuccessStatus: 200 // Permite que o navegador envie o cabeçalho 'content-length' nas solicitações CORS
     })
   );
@@ -16,7 +17,10 @@ app.use(
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use('/', loginRoute);
 app.use("/users", userRoutes);
+
+
 
 // Inicie o servidor
 app.listen(3000, () => {
